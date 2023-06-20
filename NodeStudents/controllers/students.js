@@ -13,17 +13,30 @@ getAllStudents = async(req,res)=>{
 addStudent = async (req,res)=>{
     //Se for um objeto Vazio
     if (Object.keys(req.body).length === 0) return res.send('Empty fields')
-    
-    const {name,email,dob} = req.body
 
-    await db.query('INSERT INTO students (name,email,dob) values ($1,$2,$3)', values=[
-        name,
-        email,
-        dob
-    ])
+    const {name,email,dob,class_id} = req.body
+
+    queryVerfication = `SELECT CLASS.QUANT_MAX,COUNT(STUDENTS.ID), CASE WHEN count(students.id) = CLASS.QUANT_MAX THEN FALSE ELSE TRUE END ADD from STUDENTS, CLASS WHERE STUDENTS.CLASS_ID = CLASS.ID AND CLASS_ID = ${class_id} GROUP BY CLASS.QUANT_MAX`
+
+    await db.query(queryVerfication,(error,result) =>{
+        if (error) throw error
+
+        const {add} = result.rows[0]
+
+        if (add) {
+            db.query('INSERT INTO students (name,email,dob,class_id) values ($1,$2,$3,$4)', values=[
+                name,
+                email,
+                dob,
+                class_id
+            ])
+            return res.send(`Inserted with sucess student ${name}`)
+        }
+
+        return res.send('Classe Cheia')
+    })
 
     
-    return res.send(`Inserted with sucess student ${name}`)
 }
 
 //get 1 single student
